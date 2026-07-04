@@ -14,7 +14,7 @@ import re
 # =============================================================
 # 1. AYARLAR VE SABİT DEĞİŞKENLER
 # =============================================================
-SUNUCU_ADI = "Lecas League"
+SUNUCU_ADI = "Crystal League"
 GUILD_ID = 1513449823544807435
 OWNER_ID = 1243258148232368286
 DEGER_YETKILISI_ROL_ID = 1513794221797015643   # @Ticket Yetkılısı
@@ -166,35 +166,35 @@ def normalize_cevap(text: str) -> str:
 def quiz_embed_aktif(soru: dict) -> discord.Embed:
     zorluk = soru.get("difficulty", "orta")
     emoji  = ZORLUK_EMOJI.get(zorluk, "🟡")
-    embed  = discord.Embed(color=0xf1c40f)
-    embed.set_author(name="🧠 Futbol Bilgi Yarışması!")
-    embed.description = f"## {soru['question']}"
+    embed  = discord.Embed(color=CL_MAVI)
+    embed.set_author(name=f"🧠 {SUNUCU_ADI} — Bilgi Yarışması!")
+    embed.description = f"## ❓ {soru['question']}"
     embed.add_field(name="⚡ Zorluk",  value=f"{emoji} {zorluk.capitalize()}", inline=True)
     embed.add_field(name="💰 Ödül",   value=f"**{soru['points']}M€** değer",  inline=True)
     embed.add_field(name="⏱️ Süre",   value="**3 dakika**",                    inline=True)
-    embed.add_field(name="📝 Nasıl katılırsın?", value="Cevabını bu kanala yaz!", inline=False)
-    embed.set_footer(text=f"{SUNUCU_ADI} • Bilgi Yarışması  •  {datetime.now().strftime('%H:%M')}")
+    embed.add_field(name="📝 Katılım", value="Cevabını bu kanala yaz!", inline=False)
+    embed.set_footer(text=f"⚡ {SUNUCU_ADI} • Bilgi Yarışması  •  {datetime.now().strftime('%H:%M')}")
     return embed
 
 def quiz_embed_kapandi(soru: dict, kazanan: Optional[discord.Member] = None) -> discord.Embed:
     if kazanan:
-        embed = discord.Embed(color=0x2ecc71)
+        embed = discord.Embed(color=CL_YESIL)
         embed.set_author(name=f"🎉 {kazanan.display_name} Doğru Bildi!", icon_url=kazanan.display_avatar.url)
         embed.description = (
             f"{kazanan.mention} soruyu doğru cevapladı!\n"
-            f"{'─'*28}\n"
-            f"✅ Cevap: **{soru['answer']}**\n"
-            f"💰 Ödül: **{soru['points']}M€** değer"
+            f"{'━'*28}\n"
+            f"✅ **Cevap:** {soru['answer']}\n"
+            f"💰 **Ödül:** {soru['points']}M€ değer"
         )
     else:
-        embed = discord.Embed(color=0xe74c3c)
+        embed = discord.Embed(color=CL_KIRMIZI)
         embed.set_author(name="⏱️ Süre Doldu!")
         embed.description = (
             f"Kimse bilemedi!\n"
-            f"{'─'*28}\n"
-            f"✅ Doğru cevap: **{soru['answer']}**"
+            f"{'━'*28}\n"
+            f"✅ **Doğru cevap:** {soru['answer']}"
         )
-    embed.set_footer(text=f"{SUNUCU_ADI} • Bilgi Yarışması  •  {datetime.now().strftime('%H:%M')}")
+    embed.set_footer(text=f"⚡ {SUNUCU_ADI} • Bilgi Yarışması  •  {datetime.now().strftime('%H:%M')}")
     return embed
 
 async def _quiz_timer(channel: discord.TextChannel):
@@ -265,31 +265,41 @@ async def on_ready():
         self_ping.start()
     print(f"✅ {bot.user} AKTİF! {SUNUCU_ADI} Sistemi Hazır.")
 
+CL_MAVI   = 0x00b4d8   # Crystal League ana rengi
+CL_YESIL  = 0x00d47a
+CL_KIRMIZI= 0xff4757
+CL_ALTIN  = 0xffd700
+
+def _zaman():
+    return datetime.now().strftime('%d.%m.%Y %H:%M')
+
 def embed_hata(baslik: str, aciklama: str) -> discord.Embed:
-    e = discord.Embed(title=f"❌  {baslik}", description=aciklama, color=0xe74c3c)
-    e.set_footer(text=SUNUCU_ADI)
+    e = discord.Embed(color=CL_KIRMIZI)
+    e.set_author(name=f"❌  {baslik}")
+    e.description = aciklama
+    e.set_footer(text=f"⚡ {SUNUCU_ADI}  •  {_zaman()}")
     return e
 
 def embed_basari(baslik: str, aciklama: str) -> discord.Embed:
-    e = discord.Embed(title=f"✅  {baslik}", description=aciklama, color=0x2ecc71)
-    e.set_footer(text=SUNUCU_ADI)
+    e = discord.Embed(color=CL_YESIL)
+    e.set_author(name=f"✅  {baslik}")
+    e.description = aciklama
+    e.set_footer(text=f"⚡ {SUNUCU_ADI}  •  {_zaman()}")
     return e
 
-def embed_bilgi(baslik: str, renk: int = 0x7c3aed) -> discord.Embed:
+def embed_bilgi(baslik: str, renk: int = CL_MAVI) -> discord.Embed:
     e = discord.Embed(title=baslik, color=renk)
-    e.set_footer(text=f"{SUNUCU_ADI}  •  {datetime.now().strftime('%d.%m.%Y %H:%M')}")
+    e.set_footer(text=f"⚡ {SUNUCU_ADI}  •  {_zaman()}")
     return e
 
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
         kullanilan = ctx.message.content.split()[0][1:]
-        embed = discord.Embed(
-            description=f"**`.{kullanilan}`** diye bir komut yok.\n`.yardım` yazarak mevcut komut listesine bakabilirsin.",
-            color=0xe74c3c
-        )
-        embed.set_author(name=f"⚡ {SUNUCU_ADI}", icon_url=ctx.guild.icon.url if ctx.guild and ctx.guild.icon else None)
-        embed.set_footer(text="Doğru komutu bulmak için .yardım yaz")
+        embed = discord.Embed(color=CL_KIRMIZI)
+        embed.set_author(name=f"💎 {SUNUCU_ADI} — Bilinmeyen Komut", icon_url=ctx.guild.icon.url if ctx.guild and ctx.guild.icon else None)
+        embed.description = f"**`.{kullanilan}`** diye bir komut yok.\n`.yardım` yazarak komut listesine bakabilirsin."
+        embed.set_footer(text=f"⚡ {SUNUCU_ADI}  •  {_zaman()}")
         await ctx.send(embed=embed, delete_after=8)
     elif isinstance(error, commands.MissingPermissions):
         await ctx.send(embed=embed_hata("Yetersiz Yetki", "Bu komutu kullanmak için yetkin yok!"), delete_after=8)
@@ -313,14 +323,14 @@ async def on_member_join(member):
     elif hesap_yasi >= 7: guvenlik = "🟡 Şüpheli"
     else: guvenlik = "🔴 Yeni Hesap"
 
-    embed = discord.Embed(color=0x7c3aed)
+    embed = discord.Embed(color=CL_MAVI)
     embed.set_author(
-        name=f"⚡ {SUNUCU_ADI} — Yeni Oyuncu",
+        name=f"💎 {SUNUCU_ADI} — Yeni Oyuncu",
         icon_url=member.guild.icon.url if member.guild.icon else None
     )
     embed.description = (
         f"## 🎉 Aramıza hoş geldin, {member.mention}!\n"
-        f"{'─' * 30}\n"
+        f"{'━' * 30}\n"
         f"Sunucumuzun **{member.guild.member_count}.** üyesi oldun."
     )
     embed.add_field(name="👤 Kullanıcı", value=f"`{member.name}`", inline=True)
@@ -331,7 +341,7 @@ async def on_member_join(member):
     embed.add_field(name="📋 Durum", value="```\nKayıt Bekliyor...\n```", inline=False)
     if member.avatar:
         embed.set_thumbnail(url=member.avatar.url)
-    embed.set_footer(text=f"{SUNUCU_ADI} • Kayıt Sistemi  •  {simdi.strftime('%d.%m.%Y %H:%M')}")
+    embed.set_footer(text=f"⚡ {SUNUCU_ADI} • Kayıt Sistemi  •  {simdi.strftime('%d.%m.%Y %H:%M')}")
 
     await channel.send(content=f"🚨 <@&{KAYIT_YETKILI_ROL_ID}> yeni kayıt!", embed=embed)
     
@@ -724,8 +734,12 @@ async def sart_mesaji(ctx):
 
 @bot.command()
 async def ping(ctx):
-    latency = round(bot.latency * 1000) 
-    await ctx.send(f"🏓 **Pong!** Buradayım kral, tıkır tıkır çalışıyorum. \n⚡ **Gecikme Süresi:** {latency}ms")    
+    latency = round(bot.latency * 1000)
+    e = discord.Embed(color=CL_MAVI)
+    e.set_author(name=f"💎 {SUNUCU_ADI} — Bot Durumu", icon_url=ctx.guild.icon.url if ctx.guild.icon else None)
+    e.description = f"🏓 **Pong!** Bot aktif ve çalışıyor.\n\n⚡ **Gecikme:** `{latency}ms`"
+    e.set_footer(text=f"⚡ {SUNUCU_ADI}  •  {_zaman()}")
+    await ctx.send(embed=e)    
 
 # --- EĞLENCE KOMUTLARI ---
 @bot.command(name='duello')
@@ -782,7 +796,10 @@ async def yazi_tura(ctx):
         await asyncio.sleep(0.4)
         await mesaj.edit(content=a)
     sonuc = random.choice(["Yazı", "Tura"])
-    e = discord.Embed(title="🪙 YAZI TURA", description=f"## {sonuc}", color=0xf1c40f)
+    e = discord.Embed(color=CL_ALTIN)
+    e.set_author(name=f"🪙 {SUNUCU_ADI} — Yazı Tura", icon_url=ctx.guild.icon.url if ctx.guild.icon else None)
+    e.description = f"## {sonuc}"
+    e.set_footer(text=f"{ctx.author.display_name}  •  {_zaman()}")
     await mesaj.edit(content=None, embed=e)
 
 @bot.command(name='roll')
@@ -796,9 +813,10 @@ async def roll(ctx, *, secenekler: Optional[str] = None):
             sonuc = str(random.randint(int(liste[0]), int(liste[1])))
         else:
             sonuc = random.choice(liste)
-    e = discord.Embed(title="🎲 Roll Sonucu", color=0x5865F2, description=f"## 🎯 {sonuc}")
+    e = discord.Embed(color=CL_MAVI)
     e.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar.url if ctx.author.avatar else None)
-    e.set_footer(text=f"{datetime.now().strftime('%d.%m.%Y %H:%M')}")
+    e.description = f"## 🎲 Roll Sonucu\n🎯  **{sonuc}**"
+    e.set_footer(text=f"⚡ {SUNUCU_ADI}  •  {_zaman()}")
     await ctx.send(embed=e)
 
 @bot.command(name='ship')
@@ -810,11 +828,13 @@ async def ship_olcer(ctx, kisi1: Optional[discord.Member] = None, kisi2: Optiona
     elif oran < 50: yorum = "👀 Biraz zorlansa olur gibi ama emin değilim."
     elif oran < 80: yorum = "💖 Vay canına! Aranızda ciddi bir çekim var."
     else: yorum = "💍 Nikah memurunu çağırın! Bu iş bitmiş. 🔥"
-    embed = discord.Embed(title=f"💘 {SUNUCU_ADI} | Aşk Ölçer", description=f"{kisi1.mention} ❤️ {kisi2.mention}", color=0xff4757)
-    embed.add_field(name=f"Aşk Oranı: %{oran}", value=bar, inline=False)
-    embed.add_field(name="Sinyal:", value=yorum, inline=False)
+    embed = discord.Embed(color=0xff4757)
+    embed.set_author(name=f"💘 {SUNUCU_ADI} — Aşk Ölçer", icon_url=ctx.guild.icon.url if ctx.guild.icon else None)
+    embed.description = f"## {kisi1.mention} ❤️ {kisi2.mention}"
+    embed.add_field(name=f"💝 Aşk Oranı: %{oran}", value=bar, inline=False)
+    embed.add_field(name="💬 Yorum", value=yorum, inline=False)
     if kisi1.avatar: embed.set_thumbnail(url=kisi1.avatar.url)
-    embed.set_footer(text=f"{ctx.author.display_name} tarafından eşleştirildi.")
+    embed.set_footer(text=f"{ctx.author.display_name} tarafından eşleştirildi  •  {_zaman()}")
     await ctx.send(embed=embed)
 
 @bot.command(name='kaçcm')
@@ -844,14 +864,15 @@ async def halisaha(ctx, rakip: discord.Member = None):
             if atan == ctx.author: skor1 += 1; gol_olaylari.append(f"{dakika}' ⚽ {oyuncu} ({ctx.author.display_name})")
             else: skor2 += 1; gol_olaylari.append(f"{dakika}' ⚽ {oyuncu} ({rakip.display_name})")
         if dakika == 45: await mesaj.edit(content=f"⏸️ İlk yarı bitti!\n📊 {ctx.author.display_name} {skor1} - {skor2} {rakip.display_name}")
-    embed = discord.Embed(title="🏟️ HALISAHA MAÇ SONUCU", description=f"📊 **{ctx.author.display_name} {skor1} - {skor2} {rakip.display_name}**", color=0x2ecc71)
+    if skor1 > skor2: kazanan = ctx.author.mention; embed_renk = CL_YESIL
+    elif skor2 > skor1: kazanan = rakip.mention; embed_renk = CL_KIRMIZI
+    else: kazanan = "🤝 Berabere"; embed_renk = CL_MAVI
+    embed = discord.Embed(color=embed_renk)
+    embed.set_author(name=f"🏟️ {SUNUCU_ADI} — Halısaha Sonucu", icon_url=ctx.guild.icon.url if ctx.guild.icon else None)
+    embed.description = f"## 📊 {ctx.author.display_name}  {skor1} — {skor2}  {rakip.display_name}"
     embed.add_field(name="⚽ Goller", value="\n".join(gol_olaylari) if gol_olaylari else "Gol olmadı 😐", inline=False)
-    if skor1 > skor2: kazanan = ctx.author.mention
-    elif skor2 > skor1: kazanan = rakip.mention
-    else: kazanan = "🤝 Berabere"
     embed.add_field(name="🏆 Sonuç", value=kazanan, inline=False)
-    embed.set_footer(text=f"{SUNUCU_ADI} Halısaha Sistemi")
-    embed.set_image(url="https://media.giphy.com/media/3o7TKunL66O36RPh60/giphy.gif")
+    embed.set_footer(text=f"⚡ {SUNUCU_ADI} • Halısaha Sistemi  •  {_zaman()}")
     if ctx.author.avatar: embed.set_thumbnail(url=ctx.author.avatar.url)
     await mesaj.edit(content="✅ Maç bitti!")
     await ctx.send(embed=embed)
@@ -888,9 +909,11 @@ class PenaltiV(discord.ui.View):
 
 @bot.command(name='penaltı')
 async def penalti(ctx):
-    e = discord.Embed(title="🥅 Penaltı Noktası", description="Kaleci hazır... Köşeni seç ve şutunu çek!", color=0x3498db)
+    e = discord.Embed(color=CL_MAVI)
+    e.set_author(name=f"💎 {SUNUCU_ADI} — Penaltı Noktası", icon_url=ctx.guild.icon.url if ctx.guild.icon else None)
+    e.description = "## 🥅 Kaleci hazır!\nKöşeni seç ve şutunu çek!"
+    e.set_footer(text=f"⏱️ 20 saniye içinde karar ver!  •  {ctx.author.display_name}")
     if ctx.author.avatar: e.set_thumbnail(url=ctx.author.avatar.url)
-    e.set_footer(text="⏱️ 20 saniye içinde karar ver!")
     await ctx.send(embed=e, view=PenaltiV(ctx))
 
 @bot.command(name='çiz')
@@ -898,9 +921,9 @@ async def ciz(ctx):
     async with ctx.typing():
         buf = generate_figure()
         file = discord.File(buf, filename="figure.png")
-        embed = discord.Embed(title="🎨 Çizim Hazır!", color=0xe74c3c)
+        embed = discord.Embed(title="🎨 Oyuncu Analiz Grafiği", color=CL_MAVI)
         embed.set_image(url="attachment://figure.png")
-        embed.set_footer(text=f"{SUNUCU_ADI} • {ctx.author.display_name}")
+        embed.set_footer(text=f"⚡ {SUNUCU_ADI} • {ctx.author.display_name}  •  {_zaman()}")
         await ctx.send(embed=embed, file=file)
 
 # --- KAYIT VE KULLANICI İŞLEMLERİ ---
@@ -922,18 +945,18 @@ async def kayit(ctx, uye: discord.Member, *, isim: str):
         return await ctx.send("❌ Bot rolü yetkisiz!")
 
     hesap_yasi = (datetime.now(timezone.utc) - uye.created_at).days
-    embed = discord.Embed(color=0x00ff99)
-    embed.set_author(name=f"✅ {SUNUCU_ADI} — Kayıt Tamamlandı", icon_url=ctx.guild.icon.url if ctx.guild and ctx.guild.icon else None)
+    embed = discord.Embed(color=CL_YESIL)
+    embed.set_author(name=f"💎 {SUNUCU_ADI} — Kayıt Tamamlandı", icon_url=ctx.guild.icon.url if ctx.guild and ctx.guild.icon else None)
     embed.description = (
         f"## 🎉 {uye.mention} sunucuya katıldı!\n"
-        f"{'─' * 30}\n"
-        f"📛 Nick: **{uye.display_name}**\n"
-        f"🏅 Rol: **Kayıtlı Üye**\n"
-        f"📅 Hesap Yaşı: **{hesap_yasi} gün**\n"
-        f"👑 Yetkili: {ctx.author.mention}"
+        f"{'━' * 30}\n"
+        f"📛 **Nick:** {uye.display_name}\n"
+        f"🏅 **Rol:** Kayıtlı Üye\n"
+        f"📅 **Hesap Yaşı:** {hesap_yasi} gün\n"
+        f"👑 **Yetkili:** {ctx.author.mention}"
     )
     embed.set_thumbnail(url=uye.display_avatar.url)
-    embed.set_footer(text=f"{SUNUCU_ADI} • Kayıt Sistemi  •  {datetime.now().strftime('%d.%m.%Y %H:%M')}")
+    embed.set_footer(text=f"⚡ {SUNUCU_ADI} • Kayıt Sistemi  •  {_zaman()}")
 
     sohbet_kanal = ctx.guild.get_channel(SOHBET_KANAL_ID)
     if sohbet_kanal:
@@ -1568,9 +1591,9 @@ class HelpMenu(discord.ui.View):
         return interaction.user == self.ctx.author
 
     def get_embed(self, kategori: str, icerik: str) -> discord.Embed:
-        e = discord.Embed(color=0x7c3aed)
+        e = discord.Embed(color=CL_MAVI)
         e.set_author(
-            name=f"⚡ {SUNUCU_ADI} — {kategori}",
+            name=f"💎 {SUNUCU_ADI} — {kategori}",
             icon_url=self.ctx.guild.icon.url if self.ctx.guild and self.ctx.guild.icon else None
         )
         e.description = icerik
