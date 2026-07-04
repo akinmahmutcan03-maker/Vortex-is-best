@@ -1,0 +1,142 @@
+[
+  {
+    "question": "Hangi ülke 2022 FIFA Dünya Kupası'nı kazandı?",
+    "answer": "Arjantin",
+    "difficulty": "kolay",
+    "points": 5,
+    "hint": "Messi'nin ülkesi"
+  },
+  {
+    "question": "Cristiano Ronaldo hangi kulüpten profesyonel kariyerine başladı?",
+    "answer": "Sporting",
+    "difficulty": "orta",
+    "points": 10,
+    "hint": "Portekiz kulübü"
+  },
+  {
+    "question": "Barcelona'nın resmi stadyumunun adı nedir?",
+    "answer": "Camp Nou",
+    "difficulty": "kolay",
+    "points": 5,
+    "hint": "Katalonya'da"
+  },
+  {
+    "question": "Şampiyonlar Ligi tarihinde en fazla gol atan oyuncu kimdir?",
+    "answer": "Ronaldo",
+    "difficulty": "kolay",
+    "points": 5,
+    "hint": "Portekizli süperstar"
+  },
+  {
+    "question": "2010 Dünya Kupası'nı kazanan ülke hangisidir?",
+    "answer": "İspanya",
+    "difficulty": "kolay",
+    "points": 5,
+    "hint": "Avrupa ülkesi"
+  },
+  {
+    "question": "FIFA Ballon d'Or 2023 kazananı kimdir?",
+    "answer": "Messi",
+    "difficulty": "orta",
+    "points": 10,
+    "hint": "Arjantinli"
+  },
+  {
+    "question": "Real Madrid'in geleneksel forması hangi renktir?",
+    "answer": "Beyaz",
+    "difficulty": "çok kolay",
+    "points": 3,
+    "hint": "Los Blancos lakabı"
+  },
+  {
+    "question": "Galatasaray'ın UEFA Kupası galibiyeti hangi yılda gerçekleşti?",
+    "answer": "2000",
+    "difficulty": "zor",
+    "points": 20,
+    "hint": "Milenyum yılı"
+  },
+  {
+    "question": "Penaltı noktası kale çizgisinden kaç metre uzaktadır?",
+    "answer": "11",
+    "difficulty": "orta",
+    "points": 10,
+    "hint": "Çift haneli sayı"
+  },
+  {
+    "question": "Futbolda bir maçın normal süresi kaç dakikadır?",
+    "answer": "90",
+    "difficulty": "çok kolay",
+    "points": 3,
+    "hint": "Doksan"
+  },
+  {
+    "question": "Fenerbahçe'nin geleneksel forması hangi renklerdedir?",
+    "answer": "Sarı Lacivert",
+    "difficulty": "çok kolay",
+    "points": 3,
+    "hint": "İki renk"
+  },
+  {
+    "question": "Hangi oyuncu 'Il Fenomeno' lakabıyla anılır?",
+    "answer": "Ronaldo",
+    "difficulty": "orta",
+    "points": 10,
+    "hint": "Brezilyalı"
+  },
+  {
+    "question": "Türkiye en son hangi Dünya Kupası'nda 3. oldu?",
+    "answer": "2002",
+    "difficulty": "orta",
+    "points": 10,
+    "hint": "Kore-Japonya"
+  },
+  {
+    "question": "Offside kuralına göre rakip kale yanında kaç savunma oyuncusu olmalıdır?",
+    "answer": "2",
+    "difficulty": "orta",
+    "points": 10,
+    "hint": "Kaleci dahil"
+  },
+  {
+    "question": "Dünya Kupası'nda en fazla gol atan oyuncu kimdir?",
+    "answer": "Müller",
+    "difficulty": "zor",
+    "points": 20,
+    "hint": "Alman golcü"
+  },
+  {
+    "question": "Manchester City'nin stadyumunun adı nedir?",
+    "answer": "Etihad",
+    "difficulty": "orta",
+    "points": 10,
+    "hint": "Havayolu şirketi adı"
+  },
+  {
+    "question": "Beşiktaş'ın lakabı nedir?",
+    "answer": "Kartal",
+    "difficulty": "çok kolay",
+    "points": 3,
+    "hint": "Bir kuş"
+  },
+  {
+    "question": "UEFA Şampiyonlar Ligi'nin eski adı neydi?",
+    "answer": "Avrupa Şampiyonlar Kupası",
+    "difficulty": "zor",
+    "points": 20,
+    "hint": "1955'te başladı"
+  },
+  {
+    "question": "Dortmund'un forma renkleri nelerdir?",
+    "answer": "Sarı Siyah",
+    "difficulty": "çok kolay",
+    "points": 3,
+    "hint": "Arı renkleri"
+  },
+  {
+    "question": "Zlatan Ibrahimovic hangi ülke milli takımında oynadı?",
+    "answer": "İsveç",
+    "difficulty": "kolay",
+    "points": 5,
+    "hint": "İskandinav ülkesi"
+  }
+]
