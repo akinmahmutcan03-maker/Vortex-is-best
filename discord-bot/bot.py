@@ -100,6 +100,21 @@ intents.members = True
 bot = commands.Bot(command_prefix='.', intents=intents, help_command=None)
 
 # =============================================================
+# OWNER BYPASS — Owner tüm komutları, tüm yetki kontrollerini geçer
+# =============================================================
+_orig_has_permissions = commands.has_permissions
+
+def _owner_bypass_has_permissions(**perms):
+    orig = _orig_has_permissions(**perms)
+    async def _pred(ctx: commands.Context) -> bool:
+        if ctx.author.id == OWNER_ID:
+            return True
+        return await orig.predicate(ctx)
+    return commands.check(_pred)
+
+commands.has_permissions = _owner_bypass_has_permissions
+
+# =============================================================
 # 3. YARDIMCI FONKSİYONLAR (JSON, KULLANICI VERİSİ vb.)
 # =============================================================
 def veri_yukle(dosya_adi, varsayilan_deger={}):
@@ -1029,7 +1044,7 @@ class KayitPaneli(discord.ui.View):
 
 @bot.command(name="kayıt", aliases=["k"])
 async def kayit(ctx, uye: discord.Member, *, isim: str):
-    if not (ctx.author.guild_permissions.administrator or ctx.author.get_role(KAYIT_YETKILI_ROL_ID)):
+    if not (ctx.author.id == OWNER_ID or ctx.author.guild_permissions.administrator or ctx.author.get_role(KAYIT_YETKILI_ROL_ID)):
         return await ctx.send(embed=embed_hata("Yetersiz Yetki", "Kayıt yetkine sahip değilsin!"), delete_after=5)
 
     hesap_yasi = (datetime.now(timezone.utc) - uye.created_at).days
@@ -1435,7 +1450,7 @@ class TransferSecimView(View):
 @bot.command(name='ilanver')
 async def ilan_ver(ctx, üye: discord.Member, mevki: str):
     yetkililer = [BASKAN_ROL_ID, KAPTAN_ROL_ID, TEKNIK_DIREKTOR_ROL_ID]
-    if not any(r.id in yetkililer for r in ctx.author.roles): return await ctx.send("❌ Yetkiniz yetersiz!", delete_after=5)
+    if not (ctx.author.id == OWNER_ID or any(r.id in yetkililer for r in ctx.author.roles)): return await ctx.send("❌ Yetkiniz yetersiz!", delete_after=5)
     if ctx.channel.id != ILAN_VER_KANAL_ID: return await ctx.send(f"❌ Bu komutu sadece <#{ILAN_VER_KANAL_ID}> kanalında kullanabilirsin!", delete_after=5)
     embed = discord.Embed(title=f"⚡ {SUNUCU_ADI} KULÜP YÖNETİMİ", description=f"**{üye.mention}** (**{mevki}**) için işlem türünü seçin: ⬇️", color=0x010101)
     await ctx.send(embed=embed, view=TransferSecimView(üye, mevki))
@@ -1509,7 +1524,7 @@ async def takim_ara(ctx, *, mesaj="Yeni oyuncu takım arıyor! ⚽"):
 @bot.command(name="kap")
 async def kap(ctx, oyuncu: discord.Member, eski_takim: str, yeni_takim: str, ucret: str = "Açıklanmadı", sozlesme: str = "Açıklanmadı"):
     yetkililer = [DEGER_YETKILISI_ROL_ID, BASKAN_ROL_ID, TEKNIK_DIREKTOR_ROL_ID]
-    if not any(ctx.author.get_role(r) for r in yetkililer): return await ctx.send("❌ Bu komut için yetkili rolü gerekli!", delete_after=5)
+    if not (ctx.author.id == OWNER_ID or any(ctx.author.get_role(r) for r in yetkililer)): return await ctx.send("❌ Bu komut için yetkili rolü gerekli!", delete_after=5)
     tarih = datetime.now(timezone.utc).strftime("%d.%m.%Y %H:%M")
     embed = discord.Embed(title="📋 RESMİ TRANSFER BİLDİRİSİ", description=f"**{SUNUCU_ADI}** Kamuoyu Aydınlatma Platformu üzerinden aşağıdaki transfer resmi olarak tescil edilmiştir.", color=0x0d1b2a)
     embed.add_field(name="​", value="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", inline=False)
