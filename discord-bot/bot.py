@@ -927,46 +927,140 @@ async def ciz(ctx):
         await ctx.send(embed=embed, file=file)
 
 # --- KAYIT VE KULLANICI İŞLEMLERİ ---
+class KayitPaneli(discord.ui.View):
+    def __init__(self, yetkili: discord.Member, uye: discord.Member, isim: str, panel_mesaji=None):
+        super().__init__(timeout=60)
+        self.yetkili     = yetkili
+        self.uye         = uye
+        self.isim        = isim
+        self.panel_mesaji = panel_mesaji
+        self.tamamlandi  = False
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.yetkili.id:
+            await interaction.response.send_message(
+                "❌ Bu paneli yalnızca kayıt yapan yetkili kullanabilir!", ephemeral=True
+            )
+            return False
+        return True
+
+    async def _kayit_yap(self, interaction: discord.Interaction, rol_id: int, rol_adi: str, rol_emoji: str):
+        if self.tamamlandi:
+            return
+        self.tamamlandi = True
+        self.clear_items()
+
+        guild = interaction.guild
+        kayitsiz_rolu = guild.get_role(KAYITSIZ_ROL_ID)
+        hedef_rol     = guild.get_role(rol_id)
+
+        try:
+            await self.uye.edit(nick=self.isim)
+            if kayitsiz_rolu and kayitsiz_rolu in self.uye.roles:
+                await self.uye.remove_roles(kayitsiz_rolu)
+            if hedef_rol:
+                await self.uye.add_roles(hedef_rol)
+        except discord.Forbidden:
+            await interaction.response.edit_message(
+                embed=embed_hata("Yetki Hatası", "Botun bu üyeyi düzenleme yetkisi yok!"), view=None
+            )
+            return
+
+        hesap_yasi = (datetime.now(timezone.utc) - self.uye.created_at).days
+        sonuc_embed = discord.Embed(color=CL_YESIL)
+        sonuc_embed.set_author(
+            name=f"💎 {SUNUCU_ADI} — Kayıt Tamamlandı",
+            icon_url=guild.icon.url if guild.icon else None
+        )
+        sonuc_embed.description = (
+            f"## ✅ {self.uye.mention} kayıt edildi!\n"
+            f"{'━' * 30}\n"
+            f"📛 **Nick:** {self.isim}\n"
+            f"🏅 **Rol:** {rol_emoji} {rol_adi}\n"
+            f"📅 **Hesap Yaşı:** {hesap_yasi} gün\n"
+            f"👑 **Yetkili:** {self.yetkili.mention}"
+        )
+        sonuc_embed.set_thumbnail(url=self.uye.display_avatar.url)
+        sonuc_embed.set_footer(text=f"⚡ {SUNUCU_ADI} • Kayıt Sistemi  •  {_zaman()}")
+
+        await interaction.response.edit_message(embed=sonuc_embed, view=None)
+
+        sohbet_kanal = guild.get_channel(SOHBET_KANAL_ID)
+        if sohbet_kanal:
+            duyuru = discord.Embed(color=CL_YESIL)
+            duyuru.set_author(name=f"🎉 Yeni Üye — {SUNUCU_ADI}", icon_url=guild.icon.url if guild.icon else None)
+            duyuru.description = (
+                f"{self.uye.mention} aramıza katıldı! Hoş geldin!\n"
+                f"{'━' * 28}\n"
+                f"📛 **Nick:** {self.isim}\n"
+                f"🏅 **Rol:** {rol_emoji} {rol_adi}"
+            )
+            duyuru.set_thumbnail(url=self.uye.display_avatar.url)
+            duyuru.set_footer(text=f"⚡ {SUNUCU_ADI} • Kayıt Sistemi  •  {_zaman()}")
+            await sohbet_kanal.send(content=f"🎉 {self.uye.mention}", embed=duyuru)
+
+        log_kanal = guild.get_channel(LOG_KANAL_ID)
+        if log_kanal and log_kanal != sohbet_kanal:
+            await log_kanal.send(embed=sonuc_embed)
+
+        stat_ekle(str(self.yetkili.id), 'kayit_yapildi')
+
+    async def on_timeout(self):
+        self.clear_items()
+        if self.panel_mesaji and not self.tamamlandi:
+            try:
+                zaman_doldu = embed_hata("Kayıt Paneli Zaman Aşımı", "60 saniye içinde seçim yapılmadı. Tekrar dene.")
+                await self.panel_mesaji.edit(embed=zaman_doldu, view=None)
+            except Exception:
+                pass
+
+    @discord.ui.button(label="Futbolcu", style=discord.ButtonStyle.primary, emoji="⚽")
+    async def futbolcu_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._kayit_yap(interaction, FUTBOLCU_ROL_ID, "Futbolcu", "⚽")
+
+    @discord.ui.button(label="Teknik Direktör", style=discord.ButtonStyle.success, emoji="🎽")
+    async def teknik_direktor_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._kayit_yap(interaction, TEKNIK_DIREKTOR_ROL_ID, "Teknik Direktör", "🎽")
+
+    @discord.ui.button(label="Üye", style=discord.ButtonStyle.secondary, emoji="👤")
+    async def uye_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._kayit_yap(interaction, ÜYE_ROL_ID, "Üye", "👤")
+
+
 @bot.command(name="kayıt", aliases=["k"])
 async def kayit(ctx, uye: discord.Member, *, isim: str):
     if not (ctx.author.guild_permissions.administrator or ctx.author.get_role(KAYIT_YETKILI_ROL_ID)):
-        return await ctx.send("❌ Kayıt yetkin yok!")
-
-    kayitli_rolu = ctx.guild.get_role(KAYITLI_ROL_ID)
-    kayitsiz_rolu = ctx.guild.get_role(KAYITSIZ_ROL_ID)
-
-    try:
-        await uye.edit(nick=isim)
-        if kayitsiz_rolu and kayitsiz_rolu in uye.roles:
-            await uye.remove_roles(kayitsiz_rolu)
-        if kayitli_rolu:
-            await uye.add_roles(kayitli_rolu)
-    except discord.Forbidden:
-        return await ctx.send("❌ Bot rolü yetkisiz!")
+        return await ctx.send(embed=embed_hata("Yetersiz Yetki", "Kayıt yetkine sahip değilsin!"), delete_after=5)
 
     hesap_yasi = (datetime.now(timezone.utc) - uye.created_at).days
-    embed = discord.Embed(color=CL_YESIL)
-    embed.set_author(name=f"💎 {SUNUCU_ADI} — Kayıt Tamamlandı", icon_url=ctx.guild.icon.url if ctx.guild and ctx.guild.icon else None)
-    embed.description = (
-        f"## 🎉 {uye.mention} sunucuya katıldı!\n"
-        f"{'━' * 30}\n"
-        f"📛 **Nick:** {uye.display_name}\n"
-        f"🏅 **Rol:** Kayıtlı Üye\n"
-        f"📅 **Hesap Yaşı:** {hesap_yasi} gün\n"
-        f"👑 **Yetkili:** {ctx.author.mention}"
+    if hesap_yasi >= 30:
+        guvenlik = "✅ Güvenilir"
+    elif hesap_yasi >= 7:
+        guvenlik = "🟡 Şüpheli"
+    else:
+        guvenlik = "🔴 Yeni Hesap"
+
+    panel_embed = discord.Embed(color=CL_MAVI)
+    panel_embed.set_author(
+        name=f"💎 {SUNUCU_ADI} — Kayıt Paneli",
+        icon_url=ctx.guild.icon.url if ctx.guild.icon else None
     )
-    embed.set_thumbnail(url=uye.display_avatar.url)
-    embed.set_footer(text=f"⚡ {SUNUCU_ADI} • Kayıt Sistemi  •  {_zaman()}")
+    panel_embed.description = "📋 Aşağıdan kayıt türünü seçiniz."
+    panel_embed.add_field(name="👤 Kullanıcı", value=uye.mention, inline=False)
+    panel_embed.add_field(name="📛 Nick",      value=f"`{isim}`",  inline=True)
+    panel_embed.add_field(name="🛡️ Güvenlik",  value=guvenlik,     inline=True)
+    if uye.avatar:
+        panel_embed.set_thumbnail(url=uye.avatar.url)
+    panel_embed.set_footer(text=f"60 saniye içinde seçim yapılmalıdır.  •  bugün saat {datetime.now().strftime('%H:%M')}")
 
-    sohbet_kanal = ctx.guild.get_channel(SOHBET_KANAL_ID)
-    if sohbet_kanal:
-        await sohbet_kanal.send(content=f"🎉 {uye.mention} aramıza katıldı!", embed=embed)
-    log_kanal = ctx.guild.get_channel(LOG_KANAL_ID)
-    if log_kanal and log_kanal != sohbet_kanal:
-        await log_kanal.send(embed=embed)
+    view = KayitPaneli(ctx.author, uye, isim)
+    panel_mesaji = await ctx.send(embed=panel_embed, view=view)
+    view.panel_mesaji = panel_mesaji
 
-    await ctx.message.delete()
-    stat_ekle(str(ctx.author.id), 'kayit_yapildi')
+    try:
+        await ctx.message.delete()
+    except Exception:
+        pass
 
 @bot.command(name='kver')
 @commands.has_permissions(manage_roles=True)
