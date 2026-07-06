@@ -82,6 +82,20 @@ STAT_ISIMLER = {
     "kayit_yapildi":  "📋 Kayıt Yapıldı",
 }
 
+BECERI_KANAL_ID = 1523744315120291951   # #⭐║beceri-antrenman
+BECERI_DOSYA    = "beceri.json"
+MAX_FULL        = 2
+BECERI_BEKLEME  = 3000  # 50 dakika (saniye)
+
+BECERILER = {
+    "sut":      {"isim": "Şut Becerisi",     "max": 70, "emoji": "🎯"},
+    "defans":   {"isim": "Defans Becerisi",   "max": 55, "emoji": "🛡️"},
+    "calim":    {"isim": "Çalım Becerisi",    "max": 50, "emoji": "⚡"},
+    "dribling": {"isim": "Dribling Becerisi", "max": 60, "emoji": "🔄"},
+    "kurtaris": {"isim": "Kurtarış Becerisi", "max": 65, "emoji": "🧤"},
+    "pas":      {"isim": "Pas Becerisi",      "max": 60, "emoji": "📐"},
+}
+
 # =============================================================
 # 2. BOT VE INTENTS TANIMLAMA
 # =============================================================
@@ -1389,6 +1403,161 @@ async def ant_error(ctx, error):
             embed=embed_hata("Bekleme Süresi", f"Bir sonraki antrenman için **{dk}dk {sn}sn** beklemelisin."),
             delete_after=10
         )
+
+# --- BECERİ ANTRENMANı (.beceri) ---
+def beceri_veri_yukle(uid: int):
+    data = veri_yukle(BECERI_DOSYA, {})
+    key = str(uid)
+    if key not in data:
+        data[key] = {k: 0 for k in BECERILER}
+        data[key]["full_sayisi"] = 0
+        data[key]["son_antrenman"] = 0
+        data[key]["aktif_beceri"] = None
+    else:
+        for k in BECERILER:
+            data[key].setdefault(k, 0)
+        data[key].setdefault("full_sayisi", 0)
+        data[key].setdefault("son_antrenman", 0)
+        data[key].setdefault("aktif_beceri", None)
+    return data, data[key]
+
+def beceri_secim_embed(member: discord.Member, kayit: dict) -> discord.Embed:
+    embed = discord.Embed(color=0x9b59b6)
+    embed.set_author(name=f"⭐ {member.display_name} — Beceri Seçimi", icon_url=member.display_avatar.url)
+    desc = f"Hangi beceriyi antrenman yapmak istiyorsun? Aşağıdan seç.\n{'─' * 30}\n"
+    for key, b in BECERILER.items():
+        cur = kayit.get(key, 0)
+        mx = b["max"]
+        filled = int((cur / mx) * 10)
+        bar = "█" * filled + "░" * (10 - filled)
+        tag = " ✅" if cur >= mx else ""
+        desc += f"{b['emoji']} **{b['isim']}**: `{cur}/{mx}`{tag}\n`{bar}`\n"
+    desc += f"{'─' * 30}\n⭐ **Dolu Beceri:** `{kayit.get('full_sayisi', 0)}/{MAX_FULL}`"
+    embed.description = desc
+    embed.set_footer(text=f"{SUNUCU_ADI} • Beceri Sistemi  •  {datetime.now().strftime('%H:%M')}")
+    return embed
+
+class BeceriSelect(discord.ui.Select):
+    def __init__(self, uid: int, kayit: dict):
+        self.uid = uid
+        options = []
+        for key, b in BECERILER.items():
+            cur = kayit.get(key, 0)
+            full = cur >= b["max"]
+            label = f"{b['isim']} ({cur}/{b['max']})"
+            desc = "✅ Dolu — başka beceri seç" if full else "Antrenman için seç"
+            options.append(discord.SelectOption(label=label, value=key, emoji=b["emoji"], description=desc))
+        super().__init__(placeholder="🏃 Hangi beceriyi çalışmak istiyorsun?", options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self.uid:
+            return await interaction.response.send_message("❌ Bu panel sana ait değil.", ephemeral=True)
+        data, kayit = beceri_veri_yukle(self.uid)
+        secilen = self.values[0]
+        b = BECERILER[secilen]
+        if kayit.get(secilen, 0) >= b["max"]:
+            return await interaction.response.send_message(f"❌ **{b['isim']}** zaten dolu! Başka bir beceri seç.", ephemeral=True)
+        kayit["aktif_beceri"] = secilen
+        veri_kaydet(BECERI_DOSYA, data)
+        embed = discord.Embed(color=0x3498db)
+        embed.set_author(name=f"⭐ {interaction.user.display_name} — Beceri Seçildi", icon_url=interaction.user.display_avatar.url)
+        embed.description = (
+            f"{b['emoji']} **{b['isim']}** seçildi!\n"
+            f"{'─' * 30}\n"
+            f"Antrenman yapmak için tekrar **`.beceri`** yaz.\n"
+            f"⏱️ Her antrenman arası **{BECERI_BEKLEME // 60} dakika** beklemelisin."
+        )
+        embed.set_footer(text=f"{SUNUCU_ADI} • Beceri Sistemi  •  {datetime.now().strftime('%H:%M')}")
+        await interaction.response.edit_message(embed=embed, view=None)
+
+class BeceriView(discord.ui.View):
+    def __init__(self, uid: int, kayit: dict):
+        super().__init__(timeout=60)
+        self.add_item(BeceriSelect(uid, kayit))
+
+@bot.command(name="beceri")
+async def beceri_komutu(ctx):
+    if ctx.channel.id != BECERI_KANAL_ID:
+        return await ctx.send(
+            f"❌ Bu komutu sadece <#{BECERI_KANAL_ID}> kanalında kullanabilirsin!",
+            delete_after=5
+        )
+    if not ctx.author.get_role(FUTBOLCU_ROL_ID):
+        return await ctx.send(
+            embed=embed_hata("Yetki Yok", "Bu komutu kullanmak için **Futbolcu** rolüne sahip olmalısın!"),
+            delete_after=5
+        )
+
+    uid = ctx.author.id
+    data, kayit = beceri_veri_yukle(uid)
+    aktif = kayit.get("aktif_beceri")
+
+    # Aktif beceri seçili değil → seçim paneli göster
+    if aktif is None:
+        embed = beceri_secim_embed(ctx.author, kayit)
+        await ctx.send(embed=embed, view=BeceriView(uid, kayit))
+        return
+
+    b = BECERILER[aktif]
+    cur = kayit.get(aktif, 0)
+    mx = b["max"]
+
+    # Beceri dolmuş → full_sayisi artır, sıfırla, yeni seçim paneli
+    if cur >= mx:
+        kayit["full_sayisi"] = kayit.get("full_sayisi", 0) + 1
+        kayit["aktif_beceri"] = None
+        veri_kaydet(BECERI_DOSYA, data)
+        if kayit["full_sayisi"] >= MAX_FULL:
+            return await ctx.send(embed=discord.Embed(
+                description=(
+                    f"🏆 {ctx.author.mention} tüm becerilerini tamamladı!\n"
+                    f"**{MAX_FULL}/{MAX_FULL}** beceri fulllendi. Efsane bir oyuncu! ⭐"
+                ),
+                color=0xffd700
+            ))
+        embed = beceri_secim_embed(ctx.author, kayit)
+        return await ctx.send(embed=embed, view=BeceriView(uid, kayit))
+
+    # Cooldown kontrolü
+    simdi = int(__import__("time").time())
+    son = kayit.get("son_antrenman", 0)
+    kalan = max(0, BECERI_BEKLEME - (simdi - son))
+    if kalan > 0:
+        dk, sn = divmod(kalan, 60)
+        return await ctx.send(
+            embed=embed_hata("Bekleme Süresi", f"⏱️ Sonraki beceri antrenmanı için **{dk}dk {sn}sn** bekle!"),
+            delete_after=15
+        )
+
+    # Antrenman yap
+    kayit[aktif] = cur + 1
+    kayit["son_antrenman"] = simdi
+    yeni = cur + 1
+    veri_kaydet(BECERI_DOSYA, data)
+
+    filled = int((yeni / mx) * 12)
+    bar = "🟦" * filled + "⬜" * (12 - filled)
+    embed = discord.Embed(color=0x2ecc71 if yeni >= mx else 0x3498db)
+    embed.set_author(name=f"⭐ {ctx.author.display_name} — Beceri Antrenmanı", icon_url=ctx.author.display_avatar.url)
+    if yeni >= mx:
+        embed.description = (
+            f"🎉 {b['emoji']} **{b['isim']}** TAMAMLANDI!\n"
+            f"{'─' * 30}\n"
+            f"`{'█' * 12}` **{yeni}/{mx}** ✅\n"
+            f"{'─' * 30}\n"
+            f"Yeni bir beceri seçmek için tekrar **`.beceri`** yaz."
+        )
+    else:
+        embed.description = (
+            f"{b['emoji']} **{b['isim']}** antrenmanı yapıldı!\n"
+            f"{'─' * 30}\n"
+            f"📊 İlerleme: **{yeni}/{mx}**\n"
+            f"{bar}\n"
+            f"{'─' * 30}\n"
+            f"⏱️ Sonraki antrenman için **{BECERI_BEKLEME // 60} dakika** bekle."
+        )
+    embed.set_footer(text=f"{SUNUCU_ADI} • Beceri Sistemi  •  {datetime.now().strftime('%H:%M')}")
+    await ctx.send(embed=embed)
 
 # --- TRANSFER VE KULÜP İŞLEMLERİ ---
 class TeamView(discord.ui.View):
