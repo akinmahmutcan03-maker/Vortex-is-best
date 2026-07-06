@@ -42,8 +42,7 @@ quiz_channel_id = 1523744325186486434             # #🤖║bot-komut
 ÜYE_ROL_ID = 1523744219712327680                 # @Üye
 
 ROLLER = {
-    "futbolcu": FUTBOLCU_ROL_ID, 
-    "teknik direktör": TEKNIK_DIREKTOR_ROL_ID,
+    "futbolcu": FUTBOLCU_ROL_ID,
     "kayitli": KAYITLI_ROL_ID,
     "kayitsiz": KAYITSIZ_ROL_ID,
     "üye" : ÜYE_ROL_ID,
@@ -1083,10 +1082,6 @@ class KayitPaneli(discord.ui.View):
     async def futbolcu_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._kayit_yap(interaction, FUTBOLCU_ROL_ID, "Futbolcu", "⚽")
 
-    @discord.ui.button(label="Teknik Direktör", style=discord.ButtonStyle.success, emoji="🎽")
-    async def teknik_direktor_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self._kayit_yap(interaction, TEKNIK_DIREKTOR_ROL_ID, "Teknik Direktör", "🎽")
-
     @discord.ui.button(label="Üye", style=discord.ButtonStyle.secondary, emoji="👤")
     async def uye_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._kayit_yap(interaction, ÜYE_ROL_ID, "Üye", "👤")
@@ -1435,14 +1430,12 @@ async def takim_komutu(ctx, *, takim_adi: str = None):
     )
     if not takim_rolu:
         return await ctx.send(f"❌ `{takim_adi}` adında bir takım rolü bulunamadı.")
-    td_rol = ctx.guild.get_role(TEKNIK_DIREKTOR_ROL_ID)
     kaptan_rol = ctx.guild.get_role(KAPTAN_ROL_ID)
     futbolcu_rol = ctx.guild.get_role(FUTBOLCU_ROL_ID)
     if not futbolcu_rol:
         return await ctx.send("Sistemde 'Futbolcu' rolü ayarlı değil.")
 
     oyuncular = [m for m in takim_rolu.members if futbolcu_rol in m.roles]
-    teknik_direktor = next((m for m in takim_rolu.members if td_rol and td_rol in m.roles), None)
     kaptan = next((m for m in takim_rolu.members if kaptan_rol and kaptan_rol in m.roles), None)
 
     toplam_deger = 0
@@ -1462,8 +1455,7 @@ async def takim_komutu(ctx, *, takim_adi: str = None):
 
     embed.add_field(name="Toplam Takım Değeri", value=f"**{toplam_deger:,.0f}M€**", inline=False)
     embed.add_field(name="Takım Etiketi", value=takim_rolu.mention, inline=False)
-    embed.add_field(name="Teknik Direktör", value=teknik_direktor.mention if teknik_direktor else "-", inline=True)
-    embed.add_field(name="Takım Kaptanı", value=kaptan.mention if kaptan else "-", inline=True)
+    embed.add_field(name="Takım Başkanı", value=kaptan.mention if kaptan else "-", inline=True)
     embed.add_field(name="Futbolcu Sayısı", value=f"{len(oyuncular)} Tescilli Oyuncu", inline=False)
     embed.set_footer(text="Kadro ve Pazar değerleri için aşağıdaki butonları kullanın.")
 
@@ -1493,7 +1485,7 @@ class TransferModal(Modal):
         embed.add_field(name="📝 Rapor", value=f"*{self.rapor.value}*", inline=False)
         if self.oyuncu.avatar: embed.set_thumbnail(url=self.oyuncu.avatar.url)
         embed.set_footer(text=f"{SUNUCU_ADI} • {datetime.now().strftime('%d.%m.%Y %H:%M')}")
-        etiketler = f"<@&{BASKAN_ROL_ID}> <@&{TEKNIK_DIREKTOR_ROL_ID}> <@&{KAPTAN_ROL_ID}>"
+        etiketler = f"<@&{BASKAN_ROL_ID}> <@&{KAPTAN_ROL_ID}>"
         await kanal.send(content=etiketler, embed=embed)
         await interaction.response.send_message(embed=discord.Embed(description=f"✅ İlan başarıyla {kanal.mention} kanalına gönderildi.", color=0x2ecc71), ephemeral=True)
 
@@ -1509,7 +1501,7 @@ class TransferSecimView(View):
 
 @bot.command(name='ilanver')
 async def ilan_ver(ctx, üye: discord.Member, mevki: str):
-    yetkililer = [BASKAN_ROL_ID, KAPTAN_ROL_ID, TEKNIK_DIREKTOR_ROL_ID]
+    yetkililer = [BASKAN_ROL_ID, KAPTAN_ROL_ID]
     if not (ctx.author.id == OWNER_ID or any(r.id in yetkililer for r in ctx.author.roles)): return await ctx.send("❌ Yetkiniz yetersiz!", delete_after=5)
     if ctx.channel.id != ILAN_VER_KANAL_ID: return await ctx.send(f"❌ Bu komutu sadece <#{ILAN_VER_KANAL_ID}> kanalında kullanabilirsin!", delete_after=5)
     embed = discord.Embed(title=f"⚡ {SUNUCU_ADI} KULÜP YÖNETİMİ", description=f"**{üye.mention}** (**{mevki}**) için işlem türünü seçin: ⬇️", color=0x010101)
@@ -1574,16 +1566,15 @@ async def bilskor(ctx):
 @bot.command(name="takımara")
 @commands.cooldown(1, 60, commands.BucketType.user)
 async def takim_ara(ctx, *, mesaj="Yeni oyuncu takım arıyor! ⚽"):
-    td_rol = ctx.guild.get_role(ROLLER["teknik direktör"])
     kaptan_rol = ctx.guild.get_role(KAPTAN_ROL_ID)
-    embed = discord.Embed(title="📢 TRANSFER DUYURUSU", description=f"⚽ **Yeni Oyuncu Takım Arıyor!**\n\n👤 Oyuncu: {ctx.author.mention}\n\n📝 Mesaj:\n> {mesaj}\n\n🏟️ Kaptanlar ve Teknik Direktörler ilgilenebilir!", color=0x00bfff)
+    embed = discord.Embed(title="📢 TRANSFER DUYURUSU", description=f"⚽ **Yeni Oyuncu Takım Arıyor!**\n\n👤 Oyuncu: {ctx.author.mention}\n\n📝 Mesaj:\n> {mesaj}\n\n🏟️ Takım başkanları ilgilenebilir!", color=0x00bfff)
     embed.set_thumbnail(url=ctx.author.display_avatar.url)
     embed.set_footer(text=f"{SUNUCU_ADI} Transfer Sistemi")
-    await ctx.send(content=f"👔 {td_rol.mention if td_rol else ''} {kaptan_rol.mention if kaptan_rol else ''} yeni transfer fırsatı!", embed=embed)
+    await ctx.send(content=f"👔 {kaptan_rol.mention if kaptan_rol else ''} yeni transfer fırsatı!", embed=embed)
 
 @bot.command(name="kap")
 async def kap(ctx, oyuncu: discord.Member, eski_takim: str, yeni_takim: str, ucret: str = "Açıklanmadı", sozlesme: str = "Açıklanmadı"):
-    yetkililer = [DEGER_YETKILISI_ROL_ID, BASKAN_ROL_ID, TEKNIK_DIREKTOR_ROL_ID]
+    yetkililer = [DEGER_YETKILISI_ROL_ID, BASKAN_ROL_ID, KAPTAN_ROL_ID]
     if not (ctx.author.id == OWNER_ID or any(ctx.author.get_role(r) for r in yetkililer)): return await ctx.send("❌ Bu komut için yetkili rolü gerekli!", delete_after=5)
     tarih = datetime.now(timezone.utc).strftime("%d.%m.%Y %H:%M")
     embed = discord.Embed(title="📋 RESMİ TRANSFER BİLDİRİSİ", description=f"**{SUNUCU_ADI}** Kamuoyu Aydınlatma Platformu üzerinden aşağıdaki transfer resmi olarak tescil edilmiştir.", color=0x0d1b2a)
