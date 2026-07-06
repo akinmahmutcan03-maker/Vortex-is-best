@@ -94,6 +94,18 @@ AANT_LIMIT    = 100
 GANT_KANAL_ID = 1523744313879838825   # #🥈║gümüş-ant  ← gerekirse güncelle
 AANT_KANAL_ID = 1523744314833395744   # #🥇║altın-ant  ← gerekirse güncelle
 
+# Antrenman tamamlanınca haftalık niteliğe otomatik eklenen puanlar
+GANT_NITELIK_ODUL = {
+    "Hızlanma":   3,
+    "Sprint Hızı": 3,
+    "Dayanıklılık": 2,
+}
+AANT_NITELIK_ODUL = {
+    "Şut Gücü":    3,
+    "Uzaktan Şut": 3,
+    "Güç":         2,
+}
+
 STAT_ISIMLER = {
     "antrenman":       "🏋️ Antrenman",
     "penalti_atilan":  "🥅 Penaltı Atılan",
@@ -212,6 +224,23 @@ def ant_embed_devam(oyuncu: discord.Member, mevcut: int, limit: int, tip: str) -
     )
     embed.set_footer(text=f"{SUNUCU_ADI} • {baslik}  •  {datetime.now().strftime('%H:%M')}")
     return embed
+
+def ant_nitelik_ver(uid: str, odul: dict) -> dict:
+    """Oyuncunun haftalık nitelik havuzuna antrenman ödüllerini ekler. Kazanılan dict döndürür."""
+    data = nt_oku()
+    if uid not in data:
+        data[uid] = {"all_time": {}, "haftalik": {}}
+    data[uid].setdefault("haftalik", {})
+    kazanilan = {}
+    for nitelik, puan in odul.items():
+        mevcut = data[uid]["haftalik"].get(nitelik, 0)
+        yeni   = min(49, mevcut + puan)
+        eklenecek = yeni - mevcut
+        if eklenecek > 0:
+            data[uid]["haftalik"][nitelik] = yeni
+            kazanilan[nitelik] = eklenecek
+    nt_yaz(data)
+    return kazanilan
 
 def ant_embed_limit(oyuncu: discord.Member, limit: int, tip: str) -> discord.Embed:
     emoji  = "🥈" if tip == "gumus" else "🥇"
@@ -1496,7 +1525,24 @@ async def gant(ctx):
     mevcut += 1
     data[uid] = mevcut
     ant_yaz(GANT_DOSYA, data)
-    await ctx.send(embed=ant_embed_devam(ctx.author, mevcut, GANT_LIMIT, "gumus"))
+    if mevcut >= GANT_LIMIT:
+        data[uid] = 0
+        ant_yaz(GANT_DOSYA, data)
+        kazanilan = ant_nitelik_ver(uid, GANT_NITELIK_ODUL)
+        embed = discord.Embed(color=0x2ecc71)
+        embed.set_author(name="🥈 Gümüş Antrenman Tamamlandı!", icon_url=ctx.author.display_avatar.url)
+        nitelik_satirlar = "\n".join(f"**{n}:** +{p}" for n, p in kazanilan.items()) if kazanilan else "*Haftalık limit doldu, nitelik eklenemedi.*"
+        embed.description = (
+            f"🎉 {ctx.author.mention} gümüş antrenmanını bitirdi!\n"
+            f"{'─'*30}\n"
+            f"⭐ **Kazanılan Nitelikler (Haftalık):**\n{nitelik_satirlar}\n"
+            f"{'─'*30}\n"
+            f"Sayaç sıfırlandı, tekrar antrenman yapabilirsin!"
+        )
+        embed.set_footer(text=f"{SUNUCU_ADI} • Gümüş Antrenman  •  {datetime.now().strftime('%H:%M')}")
+        await ctx.send(embed=embed)
+    else:
+        await ctx.send(embed=ant_embed_devam(ctx.author, mevcut, GANT_LIMIT, "gumus"))
 
 @gant.error
 async def gant_error(ctx, error):
@@ -1537,7 +1583,24 @@ async def aant(ctx):
     mevcut += 1
     data[uid] = mevcut
     ant_yaz(AANT_DOSYA, data)
-    await ctx.send(embed=ant_embed_devam(ctx.author, mevcut, AANT_LIMIT, "altin"))
+    if mevcut >= AANT_LIMIT:
+        data[uid] = 0
+        ant_yaz(AANT_DOSYA, data)
+        kazanilan = ant_nitelik_ver(uid, AANT_NITELIK_ODUL)
+        embed = discord.Embed(color=0xf1c40f)
+        embed.set_author(name="🥇 Altın Antrenman Tamamlandı!", icon_url=ctx.author.display_avatar.url)
+        nitelik_satirlar = "\n".join(f"**{n}:** +{p}" for n, p in kazanilan.items()) if kazanilan else "*Haftalık limit doldu, nitelik eklenemedi.*"
+        embed.description = (
+            f"🏆 {ctx.author.mention} altın antrenmanını bitirdi!\n"
+            f"{'─'*30}\n"
+            f"⭐ **Kazanılan Nitelikler (Haftalık):**\n{nitelik_satirlar}\n"
+            f"{'─'*30}\n"
+            f"Sayaç sıfırlandı, tekrar antrenman yapabilirsin!"
+        )
+        embed.set_footer(text=f"{SUNUCU_ADI} • Altın Antrenman  •  {datetime.now().strftime('%H:%M')}")
+        await ctx.send(embed=embed)
+    else:
+        await ctx.send(embed=ant_embed_devam(ctx.author, mevcut, AANT_LIMIT, "altin"))
 
 @aant.error
 async def aant_error(ctx, error):
