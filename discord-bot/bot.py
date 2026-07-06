@@ -15,7 +15,7 @@ import re
 # 1. AYARLAR VE SABİT DEĞİŞKENLER
 # =============================================================
 SUNUCU_ADI = "Crystal League"
-GUILD_ID = 1513449823544807435
+GUILD_ID = 1522977509497503876
 OWNER_ID = 1243258148232368286
 DEGER_YETKILISI_ROL_ID = 1513794221797015643   # @Ticket Yetkılısı
 ANTRENMAN_KANAL_ID = 1513915145921757345          # #🎽・antrenman
