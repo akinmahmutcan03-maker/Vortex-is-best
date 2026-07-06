@@ -1664,7 +1664,7 @@ async def toplurolver(ctx, *args: Union[discord.Member, discord.Role]):
 # --- TICKET SİSTEMİ ---
 TICKET_KATEGORILER = [
     discord.SelectOption(label="Transfer İşlemi",  description="Oyuncu transferi veya bonservis talebi", emoji="⚽"),
-    discord.SelectOption(label="Değer İtirazı", description="Piyasa değeri ile ilgili talepler", emoji="💰"),
+    discord.SelectOption(label="Değer / Bütçe", description="Piyasa değeri ve bütçe ile ilgili talepler", emoji="💰"),
     discord.SelectOption(label="Şikayet / Öneri", description="Şikayet bildir veya öneri sun", emoji="📋"),
     discord.SelectOption(label="Satın Alım", description="Sunucu içi satın alım işlemleri", emoji="🛒"),
     discord.SelectOption(label="Diğer", description="Yukarıdaki kategorilere uymayan talepler", emoji="🔧"),
