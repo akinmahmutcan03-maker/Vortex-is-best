@@ -14,7 +14,7 @@ import re
 # =============================================================
 # 1. AYARLAR VE SABİT DEĞİŞKENLER
 # =============================================================
-SUNUCU_ADI = "Crystal League"
+SUNUCU_ADI = "Vortex League"
 GUILD_ID = 1522977509497503876
 OWNER_ID = 1243258148232368286
 DEGER_YETKILISI_ROL_ID = 1513794221797015643   # @Ticket Yetkılısı
@@ -754,7 +754,63 @@ async def ping(ctx):
     e.set_author(name=f"💎 {SUNUCU_ADI} — Bot Durumu", icon_url=ctx.guild.icon.url if ctx.guild.icon else None)
     e.description = f"🏓 **Pong!** Bot aktif ve çalışıyor.\n\n⚡ **Gecikme:** `{latency}ms`"
     e.set_footer(text=f"⚡ {SUNUCU_ADI}  •  {_zaman()}")
-    await ctx.send(embed=e)    
+    await ctx.send(embed=e)
+
+@bot.command(name="idler")
+async def idler(ctx):
+    """Owner için: sunucudaki tüm kanal ve rollerin ID'lerini listeler."""
+    if ctx.author.id != OWNER_ID:
+        return
+    guild = ctx.guild
+    if not guild:
+        return
+
+    # KANALLAR
+    kanal_satirlar = []
+    for ch in sorted(guild.channels, key=lambda c: (str(type(c).__name__), c.name)):
+        if isinstance(ch, discord.CategoryChannel):
+            kanal_satirlar.append(f"📁 **[KATEGORİ]** {ch.name} → `{ch.id}`")
+        elif isinstance(ch, discord.TextChannel):
+            kanal_satirlar.append(f"💬 #{ch.name} → `{ch.id}`")
+        elif isinstance(ch, discord.VoiceChannel):
+            kanal_satirlar.append(f"🔊 {ch.name} → `{ch.id}`")
+
+    # ROLLER
+    rol_satirlar = []
+    for rol in sorted(guild.roles[1:], key=lambda r: -r.position):  # @everyone hariç
+        rol_satirlar.append(f"🏅 @{rol.name} → `{rol.id}`")
+
+    # Kanalları böl (Discord 4096 karakter limiti)
+    def bolum_gonder(satirlar, baslik):
+        parcalar = []
+        parca = ""
+        for s in satirlar:
+            if len(parca) + len(s) + 1 > 3900:
+                parcalar.append(parca)
+                parca = s + "\n"
+            else:
+                parca += s + "\n"
+        if parca:
+            parcalar.append(parca)
+        return [(baslik if i == 0 else f"{baslik} (devam {i+1})", p) for i, p in enumerate(parcalar)]
+
+    embeds = []
+    for baslik, icerik in bolum_gonder(kanal_satirlar, "📡 KANALLAR"):
+        e = discord.Embed(title=baslik, description=icerik, color=CL_MAVI)
+        embeds.append(e)
+    for baslik, icerik in bolum_gonder(rol_satirlar, "🏅 ROLLER"):
+        e = discord.Embed(title=baslik, description=icerik, color=CL_ALTIN)
+        embeds.append(e)
+
+    for e in embeds:
+        e.set_footer(text=f"⚡ {guild.name}  •  {_zaman()}")
+        await ctx.author.send(embed=e)
+
+    await ctx.send("📬 ID listesi DM'ine gönderildi!", delete_after=5)
+    try:
+        await ctx.message.delete()
+    except Exception:
+        pass
 
 # --- EĞLENCE KOMUTLARI ---
 @bot.command(name='duello')
