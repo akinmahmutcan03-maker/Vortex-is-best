@@ -51,31 +51,25 @@ ROLLER = {
 }
 
 TAKIM_LOGOLARI = {
-    "PSG": "https://i.imgur.com/y4N2yJp.png",
-    "Barcelona": "https://i.imgur.com/w6TqTzL.png",
-    "Real Madrid": "https://i.imgur.com/gJ6hL6x.png",
-    "Manchester City": "https://i.imgur.com/qL3t3S4.png",
-    "Dortmund": "https://i.imgur.com/Y32wW9M.png",
     "Galatasaray": "https://i.imgur.com/jMzNz3a.png",
+    "Beşiktaş": "https://upload.wikimedia.org/wikipedia/en/thumb/8/8a/Be%C5%9Fikta%C5%9F_JK_logo.svg/100px-Be%C5%9Fikta%C5%9F_JK_logo.svg.png",
     "Fenerbahçe": "https://i.imgur.com/z4f1YfN.png",
-    "Arsenal": "https://i.imgur.com/P4aGzS6.png",
-    "Bayern Münih": "https://i.imgur.com/3f3f3f3.png",
-    "Beşiktaş": "https://i.imgur.com/3f3f3f3.png",
+    "Bayern Münih": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/FC_Bayern_M%C3%BCnchen_logo_%282002%E2%80%932017%29.svg/100px-FC_Bayern_M%C3%BCnchen_logo_%282002%E2%80%932017%29.svg.png",
+    "Barcelona": "https://i.imgur.com/w6TqTzL.png",
+    "İnter": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/FC_Internazionale_Milano_2021.svg/100px-FC_Internazionale_Milano_2021.svg.png",
+    "Real Madrid": "https://i.imgur.com/gJ6hL6x.png",
+    "Juventus": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Juventus_FC_2017_icon_%28black%29.svg/100px-Juventus_FC_2017_icon_%28black%29.svg.png",
 }
 
 TAKIM_RENKLERI = {
-    "Barcelona": 0xa50044,
-    "Real Madrid": 0xffffff,
-    "PSG": 0x003370,
-    "Paris": 0x003370,
-    "Dortmund": 0xfde100,
-    "Arsenal": 0xef0107,
-    "Manchester City": 0x6cabdd,
     "Galatasaray": 0xd4031c,
+    "Beşiktaş": 0x1a1a1a,
     "Fenerbahçe": 0xffee00,
-    "Beşiktaş": 0x000000,
-    "Bayern": 0xdc052d,
     "Bayern Münih": 0xdc052d,
+    "Barcelona": 0xa50044,
+    "İnter": 0x0068a8,
+    "Real Madrid": 0xffffff,
+    "Juventus": 0x1a1a1a,
 }
 
 PARA_DOSYA      = "para.json"
@@ -1431,7 +1425,16 @@ class TeamView(discord.ui.View):
             await self.message.delete()
 
 @bot.command(name="takım")
-async def takim_komutu(ctx, takim_rolu: discord.Role):
+async def takim_komutu(ctx, *, takim_adi: str = None):
+    if not takim_adi:
+        return await ctx.send("❌ Kullanım: `.takım Real Madrid`")
+    takim_adi_lower = takim_adi.lower().strip()
+    takim_rolu = next(
+        (r for r in ctx.guild.roles if takim_adi_lower in r.name.lower()),
+        None
+    )
+    if not takim_rolu:
+        return await ctx.send(f"❌ `{takim_adi}` adında bir takım rolü bulunamadı.")
     td_rol = ctx.guild.get_role(TEKNIK_DIREKTOR_ROL_ID)
     kaptan_rol = ctx.guild.get_role(KAPTAN_ROL_ID)
     futbolcu_rol = ctx.guild.get_role(FUTBOLCU_ROL_ID)
@@ -1452,8 +1455,9 @@ async def takim_komutu(ctx, takim_rolu: discord.Role):
         except (ValueError, IndexError):
             continue
 
-    embed = discord.Embed(title=f"{takim_rolu.name} Takım Formu", color=takim_rolu.color)
-    if logo_url := TAKIM_LOGOLARI.get(takim_rolu.name):
+    takim_adi_sade = takim_rolu.name.split(" |")[0].strip()
+    embed = discord.Embed(title=f"{takim_adi_sade} Takım Formu", color=takim_rolu.color)
+    if logo_url := TAKIM_LOGOLARI.get(takim_adi_sade):
         embed.set_thumbnail(url=logo_url)
 
     embed.add_field(name="Toplam Takım Değeri", value=f"**{toplam_deger:,.0f}M€**", inline=False)
