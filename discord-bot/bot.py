@@ -73,13 +73,34 @@ TAKIM_RENKLERI = {
 PARA_DOSYA      = "para.json"
 ANTRENMAN_DOSYA = "antrenman.json"
 STAT_DOSYA      = "stats.json"
+NITELIK_DOSYA   = "nitelikler.json"
+
+NITELIK_YETKILI_ROL_ID = DEGER_YETKILISI_ROL_ID
+
+KATEGORILER = {
+    "Atak":     ["Orta Açma", "Bitiricilik", "Kafa İsabeti", "Kısa Pas", "Voleler"],
+    "Savunma":  ["Ayakta Müdahale", "Kayarak Müdahale", "Top Kesme"],
+    "Beceri":   ["Dribbling", "Falso", "Serbest Vuruş İsabeti", "Uzun Pas", "Top Kontrolü"],
+    "Güç":      ["Şut Gücü", "Zıplama", "Dayanıklılık", "Güç", "Uzaktan Şut"],
+    "Hareket":  ["Hızlanma", "Sprint Hızı", "Çeviklik", "Reaksiyonlar", "Denge"],
+    "Mentalite":["Agresiflik", "Pozisyon Alma", "Görüş", "Penaltı"],
+    "Kaleci":   ["Kaleci Atlayışı", "Kaleci Top Kontrolü", "Kaleci Vuruşu", "Kaleci Pozisyon Alma", "Kaleci Refleksler"],
+}
+
+GANT_DOSYA    = "gant.json"
+AANT_DOSYA    = "aant.json"
+GANT_LIMIT    = 50
+AANT_LIMIT    = 100
+GANT_KANAL_ID = 1523744313879838825   # #🥈║gümüş-ant  ← gerekirse güncelle
+AANT_KANAL_ID = 1523744314833395744   # #🥇║altın-ant  ← gerekirse güncelle
 
 STAT_ISIMLER = {
-    "antrenman":      "🏋️ Antrenman",
-    "penalti_atilan": "🥅 Penaltı Atılan",
-    "penalti_gol":    "⚽ Penaltı Golü",
-    "post":           "📸 Post",
-    "kayit_yapildi":  "📋 Kayıt Yapıldı",
+    "antrenman":       "🏋️ Antrenman",
+    "penalti_atilan":  "🥅 Penaltı Atılan",
+    "penalti_gol":     "⚽ Penaltı Golü",
+    "post":            "📸 Post",
+    "kayit_yapildi":   "📋 Kayıt Yapıldı",
+    "nitelik_eklendi": "⭐ Nitelik Eklendi",
 }
 
 BECERI_KANAL_ID = 1523744315120291951   # #⭐║beceri-antrenman
@@ -161,6 +182,50 @@ def stat_ekle(uid: str, key: str, miktar: int = 1):
         data[uid] = {}
     data[uid][key] = data[uid].get(key, 0) + miktar
     stat_yaz(data)
+
+def nt_oku():
+    return veri_yukle(NITELIK_DOSYA, {})
+
+def nt_yaz(data):
+    veri_kaydet(NITELIK_DOSYA, data)
+
+def ant_oku(dosya):
+    return veri_yukle(dosya, {})
+
+def ant_yaz(dosya, data):
+    veri_kaydet(dosya, data)
+
+def ant_embed_devam(oyuncu: discord.Member, mevcut: int, limit: int, tip: str) -> discord.Embed:
+    emoji  = "🥈" if tip == "gumus" else "🥇"
+    renk   = 0xc0c0c0 if tip == "gumus" else 0xf1c40f
+    baslik = "Gümüş Antrenman" if tip == "gumus" else "Altın Antrenman"
+    dolu   = round((mevcut / limit) * 20)
+    bar    = "█" * dolu + "░" * (20 - dolu)
+    embed  = discord.Embed(color=renk)
+    embed.set_author(name=f"{emoji} {baslik}", icon_url=oyuncu.display_avatar.url)
+    embed.description = (
+        f"**{oyuncu.display_name}** antrenman yapıyor!\n"
+        f"{'─'*30}\n"
+        f"`{bar}` **{mevcut}/{limit}**\n"
+        f"{'─'*30}\n"
+        f"⏱️ Bir sonraki antrenman için **1 saat** bekle."
+    )
+    embed.set_footer(text=f"{SUNUCU_ADI} • {baslik}  •  {datetime.now().strftime('%H:%M')}")
+    return embed
+
+def ant_embed_limit(oyuncu: discord.Member, limit: int, tip: str) -> discord.Embed:
+    emoji  = "🥈" if tip == "gumus" else "🥇"
+    renk   = 0xc0c0c0 if tip == "gumus" else 0xf1c40f
+    baslik = "Gümüş Antrenman" if tip == "gumus" else "Altın Antrenman"
+    embed  = discord.Embed(color=renk)
+    embed.set_author(name=f"{emoji} Limit Doldu!", icon_url=oyuncu.display_avatar.url)
+    embed.description = (
+        f"{oyuncu.mention} **{limit}/{limit}** limitine ulaştı!\n"
+        f"{'─'*30}\n"
+        f"✅ {baslik} tamamlandı. Artık daha fazla antrenman yapamazsın."
+    )
+    embed.set_footer(text=f"{SUNUCU_ADI} • {baslik}  •  {datetime.now().strftime('%H:%M')}")
+    return embed
 
 # --- BİLGİ YARIŞMASI ---
 QUIZ_SKOR_DOSYA = "quiz_skor.json"
@@ -1404,6 +1469,134 @@ async def ant_error(ctx, error):
             delete_after=10
         )
 
+# --- GÜMÜŞ ANTRENMAN (.gant) ---
+@bot.command(name='gant')
+@commands.cooldown(1, 3600, commands.BucketType.user)
+async def gant(ctx):
+    if ctx.channel.id != GANT_KANAL_ID:
+        ctx.command.reset_cooldown(ctx)
+        return await ctx.send(
+            embed=embed_hata("Yanlış Kanal", f"Bu komutu sadece <#{GANT_KANAL_ID}> kanalında kullanabilirsin!"),
+            delete_after=5
+        )
+    if not ctx.author.get_role(FUTBOLCU_ROL_ID):
+        ctx.command.reset_cooldown(ctx)
+        return await ctx.send(
+            embed=embed_hata("Yetki Yok", "Bu komutu kullanmak için **Futbolcu** rolüne sahip olmalısın!"),
+            delete_after=5
+        )
+    try: await ctx.message.delete()
+    except Exception: pass
+    data = ant_oku(GANT_DOSYA)
+    uid  = str(ctx.author.id)
+    mevcut = data.get(uid, 0)
+    if mevcut >= GANT_LIMIT:
+        ctx.command.reset_cooldown(ctx)
+        return await ctx.send(embed=ant_embed_limit(ctx.author, GANT_LIMIT, "gumus"))
+    mevcut += 1
+    data[uid] = mevcut
+    ant_yaz(GANT_DOSYA, data)
+    await ctx.send(embed=ant_embed_devam(ctx.author, mevcut, GANT_LIMIT, "gumus"))
+
+@gant.error
+async def gant_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        kalan = int(error.retry_after)
+        dk, sn = divmod(kalan, 60)
+        await ctx.send(
+            embed=embed_hata("Bekleme Süresi", f"Bir sonraki gümüş antrenman için **{dk}dk {sn}sn** beklemelisin."),
+            delete_after=10
+        )
+        try: await ctx.message.delete()
+        except Exception: pass
+
+# --- ALTIN ANTRENMAN (.aant) ---
+@bot.command(name='aant')
+@commands.cooldown(1, 3600, commands.BucketType.user)
+async def aant(ctx):
+    if ctx.channel.id != AANT_KANAL_ID:
+        ctx.command.reset_cooldown(ctx)
+        return await ctx.send(
+            embed=embed_hata("Yanlış Kanal", f"Bu komutu sadece <#{AANT_KANAL_ID}> kanalında kullanabilirsin!"),
+            delete_after=5
+        )
+    if not ctx.author.get_role(FUTBOLCU_ROL_ID):
+        ctx.command.reset_cooldown(ctx)
+        return await ctx.send(
+            embed=embed_hata("Yetki Yok", "Bu komutu kullanmak için **Futbolcu** rolüne sahip olmalısın!"),
+            delete_after=5
+        )
+    try: await ctx.message.delete()
+    except Exception: pass
+    data = ant_oku(AANT_DOSYA)
+    uid  = str(ctx.author.id)
+    mevcut = data.get(uid, 0)
+    if mevcut >= AANT_LIMIT:
+        ctx.command.reset_cooldown(ctx)
+        return await ctx.send(embed=ant_embed_limit(ctx.author, AANT_LIMIT, "altin"))
+    mevcut += 1
+    data[uid] = mevcut
+    ant_yaz(AANT_DOSYA, data)
+    await ctx.send(embed=ant_embed_devam(ctx.author, mevcut, AANT_LIMIT, "altin"))
+
+@aant.error
+async def aant_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        kalan = int(error.retry_after)
+        dk, sn = divmod(kalan, 60)
+        await ctx.send(
+            embed=embed_hata("Bekleme Süresi", f"Bir sonraki altın antrenman için **{dk}dk {sn}sn** beklemelisin."),
+            delete_after=10
+        )
+        try: await ctx.message.delete()
+        except Exception: pass
+
+# --- ANTRENMAN SKOR / SIFIRLA ---
+@bot.command(name='antskor')
+async def antskor(ctx, tip: str = "gumus"):
+    tip = tip.lower().replace("ü", "u").replace("ı", "i")
+    if tip in ("altin", "altan", "aant", "a"):
+        dosya, limit, etiket, emoji = AANT_DOSYA, AANT_LIMIT, "Altın Antrenman", "🥇"
+    else:
+        dosya, limit, etiket, emoji = GANT_DOSYA, GANT_LIMIT, "Gümüş Antrenman", "🥈"
+    data = ant_oku(dosya)
+    if not data:
+        return await ctx.send(embed=embed_hata(etiket, "Henüz hiç antrenman yapılmamış!"))
+    sirali = sorted(data.items(), key=lambda x: x[1], reverse=True)[:10]
+    embed  = discord.Embed(color=0xf1c40f if emoji == "🥇" else 0xc0c0c0)
+    embed.set_author(
+        name=f"{emoji} {etiket} — Skor Tablosu",
+        icon_url=ctx.guild.icon.url if ctx.guild.icon else None
+    )
+    madalya = ["🥇", "🥈", "🥉"]
+    desc = f"{'─'*30}\n"
+    for i, (uid, sayi) in enumerate(sirali):
+        member = ctx.guild.get_member(int(uid))
+        isim   = member.display_name if member else f"ID:{uid}"
+        prefix = madalya[i] if i < 3 else f"**#{i+1}**"
+        bar_dolu = round((sayi / limit) * 10)
+        mini_bar = "█" * bar_dolu + "░" * (10 - bar_dolu)
+        desc += f"{prefix} **{isim}** — `{mini_bar}` **{sayi}/{limit}**\n"
+    desc += f"{'─'*30}"
+    embed.description = desc
+    embed.set_footer(text=f"{SUNUCU_ADI} • {datetime.now().strftime('%d.%m.%Y %H:%M')}")
+    await ctx.send(embed=embed)
+
+@bot.command(name='antsifirla')
+@commands.has_permissions(administrator=True)
+async def antsifirla(ctx, tip: str, uye: discord.Member = None):
+    tip_n  = tip.lower().replace("ü", "u").replace("ı", "i")
+    dosya  = AANT_DOSYA if tip_n in ("altin", "aant") else GANT_DOSYA
+    etiket = "Altın" if tip_n in ("altin", "aant") else "Gümüş"
+    data   = ant_oku(dosya)
+    if uye:
+        data[str(uye.id)] = 0
+        ant_yaz(dosya, data)
+        await ctx.send(embed=embed_basari(f"{etiket} Antrenman Sıfırlandı", f"{uye.mention} için {etiket.lower()} antrenman sayacı sıfırlandı."))
+    else:
+        ant_yaz(dosya, {})
+        await ctx.send(embed=embed_basari(f"{etiket} Antrenman Sıfırlandı", f"Tüm oyuncuların {etiket.lower()} antrenman sayacı sıfırlandı."))
+
 # --- BECERİ ANTRENMANı (.beceri) ---
 def beceri_veri_yukle(uid: int):
     data = veri_yukle(BECERI_DOSYA, {})
@@ -1558,6 +1751,217 @@ async def beceri_komutu(ctx):
         )
     embed.set_footer(text=f"{SUNUCU_ADI} • Beceri Sistemi  •  {datetime.now().strftime('%H:%M')}")
     await ctx.send(embed=embed)
+
+# --- NİTELİK SİSTEMİ (.ekle / .nitelik-sil / .s / .nitelik-kur / .alltimegeçir) ---
+async def _guncelle_nitelik_coklu(ctx, uye: discord.Member, arguments: str, is_silme_komutu: bool):
+    parts = arguments.split(" | ", 1)
+    attributes_str = parts[0]
+    sebep = parts[1].strip() if len(parts) > 1 else ("Performans düşüklüğü" if is_silme_komutu else "Nitelik güncellendi")
+    raw_updates = [s.strip() for s in attributes_str.split(',')]
+    updates = []
+    for u in raw_updates:
+        if not u:
+            continue
+        match = re.match(r'([+-]?\d+)\s+(.+)', u.strip())
+        if match:
+            updates.append((match.group(1), match.group(2).strip()))
+        else:
+            return await ctx.send(
+                embed=embed_hata("Format Hatası", f"`{u}` geçersiz.\nÖrnek: `.ekle @oyuncu +10 Sprint Hızı, -5 Denge | sebep`"),
+                delete_after=10
+            )
+    if not updates:
+        return await ctx.send(embed=embed_hata("Hata", "Nitelik bulunamadı."), delete_after=8)
+
+    data = nt_oku()
+    uid = str(uye.id)
+    if uid not in data:
+        data[uid] = {"all_time": {}, "haftalik": {}}
+
+    degisiklik_ozeti = []
+    toplam_puan = 0
+    tum_nitelikler = [n for kat in KATEGORILER.values() for n in kat] + ["Zayıf Ayak"]
+
+    for miktar_str, nitelik_adi in updates:
+        nitelik_adi_lower = nitelik_adi.lower()
+        try:
+            miktar = int(miktar_str)
+            if is_silme_komutu:
+                miktar = -abs(miktar)
+        except ValueError:
+            continue
+        hedef = None
+        for n in tum_nitelikler:
+            if n.lower() == nitelik_adi_lower:
+                hedef = n
+                break
+        if not hedef:
+            olasılar = [n for n in tum_nitelikler if n.lower().startswith(nitelik_adi_lower)]
+            if len(olasılar) == 1:
+                hedef = olasılar[0]
+            elif len(olasılar) > 1:
+                await ctx.send(embed=embed_hata("Belirsiz Nitelik", f"`{nitelik_adi}` için: `{', '.join(olasılar)}`"), delete_after=10)
+                continue
+        if not hedef:
+            await ctx.send(embed=embed_hata("Geçersiz Nitelik", f"`{nitelik_adi}` bulunamadı."), delete_after=7)
+            continue
+        limit = 5 if hedef == "Zayıf Ayak" else 49
+        data[uid].setdefault("haftalik", {})
+        data[uid].setdefault("all_time", {})
+        haftalik_val  = data[uid]["haftalik"].get(hedef, 0)
+        yeni_haftalik = max(0, haftalik_val + miktar)
+        data[uid]["haftalik"][hedef] = yeni_haftalik
+        all_time_val    = data[uid]["all_time"].get(hedef, 0)
+        toplam_gosterim = min(limit, all_time_val + yeni_haftalik)
+        isaret = f"+{miktar}" if miktar > 0 else str(miktar)
+        degisiklik_ozeti.append(f"**{hedef}:** {isaret} → `{toplam_gosterim}/{limit}`")
+        toplam_puan += miktar
+
+    nt_yaz(data)
+    if not degisiklik_ozeti:
+        return
+    stat_ekle(uid, "nitelik_eklendi", len(degisiklik_ozeti))
+    ok = "eklendi" if toplam_puan > 0 else "düşürüldü"
+    embed = discord.Embed(color=0x43b581)
+    embed.set_author(name=f"✅ Nitelik Güncellendi — {uye.display_name}", icon_url=uye.display_avatar.url)
+    embed.description = (
+        f"**Oyuncu:** {uye.mention}\n"
+        f"**Sebep:** {sebep}\n"
+        f"{'─'*30}\n"
+        + "\n".join(degisiklik_ozeti)
+        + f"\n{'─'*30}\n"
+        f"**Toplam:** `{abs(toplam_puan)}` puan {ok}"
+    )
+    embed.set_footer(text=f"{SUNUCU_ADI} • Nitelik  •  Yetkili: {ctx.author.display_name}")
+    await ctx.send(embed=embed)
+
+def build_nitelik_embed(uye: discord.Member, baslik: str, renk: int, nitelik_dict: dict, bos_mesaj: str) -> discord.Embed:
+    toplam = sum(nitelik_dict.values()) if nitelik_dict else 0
+    embed  = discord.Embed(color=renk)
+    embed.set_author(name=f"👤 {uye.display_name} — İstatistikler", icon_url=uye.display_avatar.url)
+    embed.set_thumbnail(url=uye.display_avatar.url)
+    if not nitelik_dict or toplam == 0:
+        embed.description = bos_mesaj
+    else:
+        desc = f"**{baslik}**\n"
+        satirlar = []
+        for kat, kat_nitelikler in KATEGORILER.items():
+            for n in kat_nitelikler:
+                if n in nitelik_dict and nitelik_dict[n] > 0:
+                    satirlar.append(f"{n}: +{nitelik_dict[n]}")
+        if "Zayıf Ayak" in nitelik_dict and nitelik_dict["Zayıf Ayak"] > 0:
+            satirlar.append(f"Zayıf Ayak: +{nitelik_dict['Zayıf Ayak']}")
+        desc += "\n".join(satirlar)
+        desc += f"\n\n📈 **Toplam:** {toplam}"
+        embed.description = desc
+    embed.set_footer(text=f"{SUNUCU_ADI} • {datetime.now().strftime('%d.%m.%Y %H:%M')}")
+    return embed
+
+def build_all_time_embed(uye: discord.Member, veri_seti: dict) -> discord.Embed:
+    all_time = veri_seti.get("all_time", {})
+    return build_nitelik_embed(
+        uye, "🏆 Basılan Nitelikler", 0x5865f2, all_time,
+        "*Henüz All-Time havuzuna aktarılmış nitelik yok.*"
+    )
+
+class StatsView(discord.ui.View):
+    def __init__(self, uye: discord.Member, uid: str):
+        super().__init__(timeout=60)
+        self.uye     = uye
+        self.uid     = uid
+        self.message = None
+
+    async def on_timeout(self):
+        if self.message:
+            try:
+                for item in self.children:
+                    item.disabled = True
+                await self.message.edit(view=self)
+            except discord.NotFound:
+                pass
+
+    @discord.ui.button(label="📅 Haftalık", style=discord.ButtonStyle.primary)
+    async def haftalik(self, interaction: discord.Interaction, button: discord.ui.Button):
+        data     = nt_oku()
+        veri     = data.get(self.uid, {"haftalik": {}})
+        haftalik = veri.get("haftalik", {})
+        embed    = build_nitelik_embed(
+            self.uye, "🎯 Basılan Nitelikler", 0x43b581, haftalik,
+            "*Bu hafta henüz nitelik basılmamış.*"
+        )
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="🏆 All-Time", style=discord.ButtonStyle.secondary)
+    async def alltime(self, interaction: discord.Interaction, button: discord.ui.Button):
+        data = nt_oku()
+        veri = data.get(self.uid, {"all_time": {}})
+        await interaction.response.edit_message(embed=build_all_time_embed(self.uye, veri), view=self)
+
+@bot.command(name="ekle")
+@commands.has_role(NITELIK_YETKILI_ROL_ID)
+async def ekle_komutu(ctx, uye: discord.Member, *, arguments: str):
+    await _guncelle_nitelik_coklu(ctx, uye, arguments, is_silme_komutu=False)
+
+@ekle_komutu.error
+async def ekle_error(ctx, error):
+    if isinstance(error, commands.MissingRole):
+        await ctx.send(embed=embed_hata("Yetki Yok", "Bu komutu kullanma yetkin yok."), delete_after=5)
+    elif isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send(embed=embed_bilgi("Kullanım: `.ekle @oyuncu +10 Sprint Hızı, -5 Denge | sebep`"), delete_after=10)
+
+@bot.command(name="nitelik-sil")
+@commands.has_role(NITELIK_YETKILI_ROL_ID)
+async def nitelik_sil_komutu(ctx, uye: discord.Member, *, arguments: str):
+    await _guncelle_nitelik_coklu(ctx, uye, arguments, is_silme_komutu=True)
+
+@nitelik_sil_komutu.error
+async def nitelik_sil_error(ctx, error):
+    if isinstance(error, commands.MissingRole):
+        await ctx.send(embed=embed_hata("Yetki Yok", "Bu komutu kullanma yetkin yok."), delete_after=5)
+
+@bot.command(name="s")
+async def stats_panel(ctx, uye: discord.Member = None):
+    uye = uye or ctx.author
+    data = nt_oku()
+    uid  = str(uye.id)
+    if uid not in data:
+        return await ctx.send(
+            embed=embed_hata("Kayıt Yok", f"{uye.mention} için nitelik kaydı bulunamadı. Yetkili `.nitelik-kur @oyuncu` ile oluşturabilir."),
+            delete_after=10
+        )
+    view = StatsView(uye, uid)
+    view.message = await ctx.send(embed=build_all_time_embed(uye, data[uid]), view=view)
+
+@bot.command(name="nitelik-kur")
+@commands.has_permissions(administrator=True)
+async def nitelik_kur(ctx, uye: discord.Member):
+    data = nt_oku()
+    uid  = str(uye.id)
+    data[uid] = {"all_time": {}, "haftalik": {}}
+    nt_yaz(data)
+    await ctx.send(embed=embed_basari("Nitelik Kartı Oluşturuldu", f"{uye.mention} için temiz bir nitelik kartı oluşturuldu/sıfırlandı."))
+
+@bot.command(name="alltimegeçir")
+@commands.has_permissions(administrator=True)
+async def all_time_gecir(ctx):
+    data  = nt_oku()
+    if not data:
+        return await ctx.send(embed=embed_hata("Hata", "Sistemde oyuncu bulunamadı."))
+    sayac = 0
+    for uid, oyuncu in data.items():
+        if "all_time" not in oyuncu: oyuncu["all_time"] = {}
+        if "haftalik" not in oyuncu: oyuncu["haftalik"] = {}
+        if oyuncu["haftalik"]:
+            for nitelik, puan in oyuncu["haftalik"].items():
+                limit = 5 if nitelik == "Zayıf Ayak" else 49
+                oyuncu["all_time"][nitelik] = min(limit, oyuncu["all_time"].get(nitelik, 0) + puan)
+            oyuncu["haftalik"] = {}
+            sayac += 1
+    nt_yaz(data)
+    await ctx.send(embed=embed_basari(
+        "All-Time Aktarımı",
+        f"**{sayac}** oyuncunun haftalık verileri All-Time havuzuna aktarıldı.\nHaftalık sayaçlar sıfırlandı."
+    ))
 
 # --- TRANSFER VE KULÜP İŞLEMLERİ ---
 class TeamView(discord.ui.View):
