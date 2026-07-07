@@ -162,6 +162,8 @@ def veri_kaydet(dosya_adi, data):
     except Exception as e:
         print(f"HATA - {dosya_adi} kaydedilemedi: {e}")
 
+antrenman_sayaci = veri_yukle(ANTRENMAN_DOSYA, {})
+
 def get_user_para_data(user_id):
     data = veri_yukle(PARA_DOSYA)
     user_id = str(user_id)
