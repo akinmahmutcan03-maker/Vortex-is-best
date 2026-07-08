@@ -48,6 +48,17 @@ ROLLER = {
     "baskan": BASKAN_ROL_ID
 }
 
+TAKIM_ROLLERI = {
+    1523744210669404240: "Galatasaray",
+    1523744211608797304: "Beşiktaş",
+    1523744212263108691: "Fenerbahçe",
+    1523744214251343903: "Bayern Münih",
+    1523744215039869030: "Barcelona",
+    1523744216117674125: "İnter",
+    1523744217715707924: "Real Madrid",
+    1523744218751959060: "Juventus",
+}
+
 TAKIM_LOGOLARI = {
     "Galatasaray": "https://i.imgur.com/jMzNz3a.png",
     "Beşiktaş": "https://upload.wikimedia.org/wikipedia/en/thumb/8/8a/Be%C5%9Fikta%C5%9F_JK_logo.svg/100px-Be%C5%9Fikta%C5%9F_JK_logo.svg.png",
@@ -517,6 +528,8 @@ async def deger_guncelle(ctx, m, miktar, sebep, islem):
             )
         isim, mevki, takim, deger = parcalar[0].strip(), parcalar[1].strip(), parcalar[2].strip(), parcalar[3].strip()
         eski = parse_deger(deger)
+        # Takımı nickten değil, oyuncunun rollerinden çek
+        rol_takim = next((TAKIM_ROLLERI[r.id] for r in m.roles if r.id in TAKIM_ROLLERI), takim)
 
         if islem == "artir":
             yeni = eski + val
@@ -557,7 +570,7 @@ async def deger_guncelle(ctx, m, miktar, sebep, islem):
                 f"```\n"
                 f"Ad     : {isim}\n"
                 f"Mevki  : {mevki}\n"
-                f"Takım  : {takim}\n"
+                f"Takım  : {rol_takim}\n"
                 f"```"
             ),
             inline=False
