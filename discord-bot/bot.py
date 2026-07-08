@@ -31,6 +31,7 @@ DESTEK_KATEGORI_ID = 1523744257167462451          # 📁 Nitelik Kazanma / Ticke
 YETKILI_1_ID = 1523744199575470141                # @Admin
 YETKILI_2_ID = 1523744204839190578                # @Değer Yetkilisi | 💵
 BASKAN_ROL_ID = 1523744209847451668               # @Takım Başkanı
+TEKNIK_DIREKTOR_ROL_ID = 1523744209847451668      # @Teknik Direktör
 KAPTAN_ROL_ID = 1523744223239864402               # @Kaptan
 FUTBOLCU_ROL_ID = 1523744220102393887             # @Futbolcu
 ILAN_VER_KANAL_ID = 1523744325186486434           # #🤖║bot-komut
@@ -1174,6 +1175,10 @@ class KayitPaneli(discord.ui.View):
     @discord.ui.button(label="Futbolcu", style=discord.ButtonStyle.primary, emoji="⚽")
     async def futbolcu_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._kayit_yap(interaction, FUTBOLCU_ROL_ID, "Futbolcu", "⚽")
+
+    @discord.ui.button(label="Teknik Direktör", style=discord.ButtonStyle.success, emoji="🎯")
+    async def teknik_direktor_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._kayit_yap(interaction, TEKNIK_DIREKTOR_ROL_ID, "Teknik Direktör", "🎯")
 
     @discord.ui.button(label="Üye", style=discord.ButtonStyle.secondary, emoji="👤")
     async def uye_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
